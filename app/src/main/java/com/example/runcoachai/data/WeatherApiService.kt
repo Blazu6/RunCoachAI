@@ -10,19 +10,23 @@ interface WeatherApiService {
         @Query("latitude") lat: Double,
         @Query("longitude") lon: Double,
         @Query("current_weather") current: Boolean = true,
-        @Query("hourly") hourly: String = "temperature_2m,weathercode" // PROSIMY O DANE GODZINOWE
+        // ZMIANA: dopisujemy precipitation_probability po przecinku
+        @Query("hourly") hourly: String = "temperature_2m,weathercode,precipitation_probability"
     ): WeatherResponse
 }
 
+// TO ZOSTAJE TAK JAK MIAŁEŚ:
 data class WeatherResponse(
     val current_weather: CurrentWeather,
-    val hourly: HourlyData // DODAJEMY TO
+    val hourly: HourlyData
 )
 
+// ZMIANA: dodajemy nową listę na końcu
 data class HourlyData(
-    val time: List<String>,            // Lista godzin: ["2023-10-27T10:00", ...]
-    val temperature_2m: List<Double>,  // Lista temperatur
-    val weathercode: List<Int>         // Lista kodów pogody
+    val time: List<String>,
+    val temperature_2m: List<Double>,
+    val weathercode: List<Int>,
+    val precipitation_probability: List<Int> // NOWOŚĆ: szansa na deszcz w %
 )
 
 data class CurrentWeather(

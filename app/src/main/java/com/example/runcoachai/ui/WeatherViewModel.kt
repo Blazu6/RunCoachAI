@@ -95,5 +95,20 @@ class WeatherViewModel : ViewModel() {
         }
     }
 
+    fun getWeatherIcon(code: Int): String {
+        return when (code) {
+            0 -> "☀️" // Czyste niebo
+            1, 2, 3 -> "⛅" // Częściowe zachmurzenie
+            45, 48 -> "🌫️" // Mgła
+            51, 53, 55, 56, 57 -> "🌧️" // Mżawka i marznąca mżawka (dodane 56, 57)
+            61, 63, 65, 66, 67 -> "🌧️" // Deszcz i marznący deszcz (dodane 66, 67)
+            71, 73, 75, 77 -> "❄️" // Śnieg i ziarna śniegu (dodane 77)
+            80, 81, 82 -> "🌦️" // Przelotny deszcz
+            85, 86 -> "❄️" // Przelotny śnieg (dodane 85, 86)
+            95, 96, 99 -> "⛈️" // Burza z piorunami / grad
+            else -> "❓" // Rezerwa na totalne anomalie
+        }
+    }
+
 
 }
