@@ -17,7 +17,7 @@ class WeatherViewModel : ViewModel() {
         .build()
 
     private val geocodingApi = Retrofit.Builder()
-        .baseUrl("https://geocoding-api.open-meteo.com/") // INNY ADRES!
+        .baseUrl("https://geocoding-api.open-meteo.com/")
         .addConverterFactory(GsonConverterFactory.create())
         .build()
         .create(GeocodingApiService::class.java)
@@ -37,6 +37,9 @@ class WeatherViewModel : ViewModel() {
         private set
 
     var hourlyForecast by mutableStateOf<HourlyData?>(null)
+        private set
+
+    var aiRecommendation by mutableStateOf("Czekam na dane o pogodzie...")
         private set
 
     private fun updateWeatherDetails(code: Int) {
@@ -65,6 +68,7 @@ class WeatherViewModel : ViewModel() {
                 updateWeatherDetails(response.current_weather.weathercode)
                 currentCityName = cityName
                 hourlyForecast = response.hourly
+                analyzeWeatherForRunning(response.hourly)
             } catch (e: Exception) {
                 android.util.Log.e("POGODA", "Błąd pobierania", e)
                 temperature = "Błąd"
@@ -84,7 +88,7 @@ class WeatherViewModel : ViewModel() {
                     updateWeatherDetails(weatherResponse.current_weather.weathercode)
                     currentCityName = city.name
                     hourlyForecast = weatherResponse.hourly
-                    // Opcjonalnie: czyścimy pole po wyszukaniu
+                    analyzeWeatherForRunning(weatherResponse.hourly)
                     cityInput = ""
                 } else {
                     temperature = "Nie znaleziono"
@@ -107,6 +111,40 @@ class WeatherViewModel : ViewModel() {
             85, 86 -> "❄️" // Przelotny śnieg (dodane 85, 86)
             95, 96, 99 -> "⛈️" // Burza z piorunami / grad
             else -> "❓" // Rezerwa na totalne anomalie
+        }
+    }
+
+    private fun analyzeWeatherForRunning(hourlyData: com.example.runcoachai.data.HourlyData) {
+        val sdf = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH", java.util.Locale.getDefault())
+        val currentFullHour = sdf.format(java.util.Date())
+        val startIndex = hourlyData.time.indexOfFirst { it.startsWith(currentFullHour) }.coerceAtLeast(0)
+
+        var bestHour = ""
+        var bestTemp = -100.0
+        var foundIdeal = false
+
+        // Sprawdzamy najbliższe 8 godzin
+        for (i in 0 until 8) {
+            val actualIndex = startIndex + i
+            if (actualIndex >= hourlyData.time.size) break
+
+            val temp = hourlyData.temperature_2m[actualIndex]
+            val rainProb = hourlyData.precipitation_probability?.get(actualIndex) ?: 0
+            val code = hourlyData.weathercode[actualIndex]
+
+            // Warunki idealne: brak deszczu (szansa < 20%), temperatura między 10 a 20 stopni
+            if (rainProb < 20 && code < 50 && temp in 10.0..20.0) {
+                bestHour = hourlyData.time[actualIndex].substringAfter("T")
+                bestTemp = temp
+                foundIdeal = true
+                break // Znaleźliśmy idealną godzinę, przerywamy szukanie!
+            }
+        }
+
+        aiRecommendation = if (foundIdeal) {
+            "Trener AI radzi: Najlepsze warunki na bieg będą o $bestHour ($bestTemp°C). Zakładaj buty!"
+        } else {
+            "Trener AI radzi: Warunki nie są dziś idealne. Rozważ krótszy bieg lub ubierz się odpowiednio do pogody."
         }
     }
 

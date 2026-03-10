@@ -34,6 +34,12 @@ class MainActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(viewModel: WeatherViewModel = viewModel()) {
+    // Zmienna do okienka dodawania treningu (jeśli już ją masz, to zostaw)
+    var showDialog by remember { mutableStateOf(false) }
+
+    // NOWE ZMIENNE DLA KALENDARZA
+    var showCalendar by remember { mutableStateOf(false) }
+    val datePickerState = rememberDatePickerState()
 
     LaunchedEffect(Unit) {
         viewModel.fetchWeather(52.41, 16.93, "Poznań")
@@ -62,13 +68,13 @@ fun HomeScreen(viewModel: WeatherViewModel = viewModel()) {
                         }
                     },
                     actions = {
-                        IconButton(onClick = { println("Kliknięto kalendarz!") }) {
+                        IconButton(onClick = { showCalendar = true }) {
                             Icon(
                                 imageVector = Icons.Default.DateRange,
                                 contentDescription = "Kalendarz"
                             )
                         }
-                        IconButton(onClick = { println("Kliknięto dodawanie treningu!") }) {
+                        IconButton(onClick = { showDialog = true }) {
                             Icon(
                                 // Używamy nowej ikony zębatki
                                 imageVector = Icons.Default.Add,
@@ -131,8 +137,6 @@ fun HomeScreen(viewModel: WeatherViewModel = viewModel()) {
                     temp = viewModel.temperature,
                     cityName = viewModel.currentCityName
                 )
-                Spacer(modifier = Modifier.height(24.dp))
-
                 Text(
                     text = "Prognoza na najbliższe godziny",
                     style = MaterialTheme.typography.titleMedium,
@@ -150,6 +154,53 @@ fun HomeScreen(viewModel: WeatherViewModel = viewModel()) {
                     )
 
                 }
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // KARTA TRENERA AI
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.2f)
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "🤖", // Ikonka AI / Mózgu
+                            fontSize = 32.sp,
+                            modifier = Modifier.padding(end = 12.dp),
+                        )
+                        Text(
+                            text = viewModel.aiRecommendation,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = androidx.compose.ui.graphics.Color.White, // Ciemny tekst na jasnej karcie
+                            lineHeight = 24.sp
+                        )
+                    }
+                }
+                // 1. WYWOŁUJEMY CZYSTY KALENDARZ
+                RunCalendarDialog(
+                    showCalendar = showCalendar,
+                    onDismiss = { showCalendar = false },
+                    onDateSelected = { dataInMillis ->
+                        println("Wybrana data: $dataInMillis")
+                        showCalendar = false
+                    }
+                )
+
+                // 2. WYWOŁUJEMY CZYSTE DODAWANIE TRENINGU
+                AddWorkoutDialog(
+                    showDialog = showDialog,
+                    onDismiss = { showDialog = false },
+                    onSave = { dystans ->
+                        // Tutaj wysyłamy do ViewModela, żeby zapisał!
+                        println("Trening: $dystans km")
+                        showDialog = false
+                    }
+                )
             }
         }
     }
@@ -218,7 +269,8 @@ fun HourlyForecast(hourlyData: HourlyData, viewModel: WeatherViewModel) {
     ) {
         LazyRow(
             contentPadding = PaddingValues(16.dp), // Odstęp wewnątrz ramki
-            horizontalArrangement = Arrangement.spacedBy(20.dp)
+            horizontalArrangement = Arrangement.spacedBy(20.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
             items(12) { index ->
                 val actualIndex = startIndex + index
@@ -265,6 +317,141 @@ fun HourlyForecast(hourlyData: HourlyData, viewModel: WeatherViewModel) {
                 }
             }
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun RunCalendarDialog(
+    showCalendar: Boolean,
+    onDismiss: () -> Unit,
+    onDateSelected: (Long?) -> Unit
+) {
+    if (!showCalendar) return // Jeśli false, w ogóle tego nie rysujemy
+
+    val datePickerState = rememberDatePickerState()
+
+    val dialogBackgroundColor = androidx.compose.ui.graphics.Color(0xFF64B5F6)
+
+    val customDatePickerColors = DatePickerDefaults.colors(
+        // 1. NAPRAWA NAKŁADANIA: Zamiast Transparent, używamy pełnego koloru
+        containerColor = dialogBackgroundColor,
+
+        // 2. NAPRAWA CZARNYCH NAPISÓW: Wszystko na biało
+        titleContentColor = androidx.compose.ui.graphics.Color.White,
+        headlineContentColor = androidx.compose.ui.graphics.Color.White,
+        weekdayContentColor = androidx.compose.ui.graphics.Color.White,
+        subheadContentColor = androidx.compose.ui.graphics.Color.White, // To jest "March 2026"
+        navigationContentColor = androidx.compose.ui.graphics.Color.White, // To są strzałki
+
+        yearContentColor = androidx.compose.ui.graphics.Color.White,
+        currentYearContentColor = androidx.compose.ui.graphics.Color.White,
+        selectedYearContentColor = dialogBackgroundColor, // Niebieski tekst roku, bo kółko będzie białe
+        selectedYearContainerColor = androidx.compose.ui.graphics.Color.White,
+
+        dayContentColor = androidx.compose.ui.graphics.Color.White,
+        disabledDayContentColor = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.3f),
+        selectedDayContentColor = dialogBackgroundColor, // Niebieski tekst dnia
+        selectedDayContainerColor = androidx.compose.ui.graphics.Color.White, // Białe kółko wokół wybranego dnia
+        todayContentColor = androidx.compose.ui.graphics.Color.White,
+        todayDateBorderColor = androidx.compose.ui.graphics.Color.White
+    )
+
+    DatePickerDialog(
+        onDismissRequest = onDismiss,
+        colors = DatePickerDefaults.colors(
+            containerColor = dialogBackgroundColor // Możesz tu dać kolor ze swojego gradientu
+        ),
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(24.dp), // Mocne zaokrąglenie, jak w naszej pogodzie
+        confirmButton = {
+            TextButton(
+                onClick = { onDateSelected(datePickerState.selectedDateMillis) }
+            ) {
+                Text("Wybierz", color = androidx.compose.ui.graphics.Color.White, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Anuluj", color = androidx.compose.ui.graphics.Color.White)
+            }
+        }
+    ) {
+        androidx.compose.runtime.CompositionLocalProvider(
+            androidx.compose.material3.LocalContentColor provides androidx.compose.ui.graphics.Color.White
+        ) {
+            DatePicker(
+                state = datePickerState,
+                colors = customDatePickerColors,
+                showModeToggle = false // Opcjonalnie: ukrywa ikonkę ołówka, żeby zostawić tylko widok siatki
+            )
+        }
+    }
+}
+
+@Composable
+fun AddWorkoutDialog(
+    showDialog: Boolean,
+    onDismiss: () -> Unit,
+    onSave: (String) -> Unit // Zwracamy wpisany tekst na zewnątrz!
+) {
+    if (!showDialog) return
+
+    var kmInput by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Dodaj dzisiejszy trening 🏃‍♂️") },
+        text = {
+            Column {
+                Text("Ile kilometrów dzisiaj przebiegłeś?")
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = kmInput,
+                    onValueChange = { kmInput = it },
+                    label = { Text("Dystans (km)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                        keyboardType = androidx.compose.ui.text.input.KeyboardType.Number
+                    )
+                )
+            }
+        },
+        confirmButton = {
+            Button(onClick = {
+                onSave(kmInput) // Wysyłamy dystans "wyżej"
+                kmInput = ""    // Czyścimy pole
+            }) {
+                Text("Zapisz")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Anuluj") }
+        }
+    )
+}
+
+@Preview(showBackground = true)
+@Composable
+fun AddWorkoutDialogPreview() {
+    MaterialTheme {
+        AddWorkoutDialog(
+            showDialog = true, // Wymuszamy pokazanie okienka w podglądzie
+            onDismiss = {},    // Pusta akcja (nic nie rób)
+            onSave = {}        // Pusta akcja
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Preview(showBackground = true)
+@Composable
+fun RunCalendarDialogPreview() {
+    MaterialTheme {
+        RunCalendarDialog(
+            showCalendar = true, // Wymuszamy pokazanie kalendarza
+            onDismiss = {},
+            onDateSelected = {}
+        )
     }
 }
 
