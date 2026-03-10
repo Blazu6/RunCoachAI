@@ -398,9 +398,16 @@ fun AddWorkoutDialog(
 
     var kmInput by remember { mutableStateOf("") }
 
+    val dialogBackgroundColor = androidx.compose.ui.graphics.Color(0xFF64B5F6)
+
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = dialogBackgroundColor,
+        titleContentColor = androidx.compose.ui.graphics.Color.White,
+        textContentColor = androidx.compose.ui.graphics.Color.White,
+        iconContentColor = androidx.compose.ui.graphics.Color.White,
         title = { Text("Dodaj dzisiejszy trening 🏃‍♂️") },
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(24.dp),
         text = {
             Column {
                 Text("Ile kilometrów dzisiaj przebiegłeś?")
@@ -408,8 +415,15 @@ fun AddWorkoutDialog(
                 OutlinedTextField(
                     value = kmInput,
                     onValueChange = { kmInput = it },
-                    label = { Text("Dystans (km)") },
+                    label = { Text("Dystans (km)", color = androidx.compose.ui.graphics.Color.White) },
                     modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = androidx.compose.ui.graphics.Color.White,
+                        unfocusedBorderColor = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.5f),
+                        focusedTextColor = androidx.compose.ui.graphics.Color.White,
+                        unfocusedTextColor = androidx.compose.ui.graphics.Color.White,
+                        cursorColor = androidx.compose.ui.graphics.Color.White
+                    ),
                     keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                         keyboardType = androidx.compose.ui.text.input.KeyboardType.Number
                     )
@@ -420,12 +434,16 @@ fun AddWorkoutDialog(
             Button(onClick = {
                 onSave(kmInput) // Wysyłamy dystans "wyżej"
                 kmInput = ""    // Czyścimy pole
-            }) {
-                Text("Zapisz")
+            },
+            colors = ButtonDefaults.buttonColors(
+                containerColor = androidx.compose.ui.graphics.Color.White,
+                contentColor = dialogBackgroundColor)
+            ) {
+                Text("Zapisz", fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Anuluj") }
+            TextButton(onClick = onDismiss) { Text("Anuluj", color = androidx.compose.ui.graphics.Color.White) }
         }
     )
 }
